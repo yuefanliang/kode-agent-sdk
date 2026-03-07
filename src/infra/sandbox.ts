@@ -1,4 +1,4 @@
-export type SandboxKind = 'local' | 'docker' | 'k8s' | 'remote' | 'vfs' | 'e2b';
+export type SandboxKind = 'local' | 'docker' | 'k8s' | 'remote' | 'vfs' | 'e2b' | 'opensandbox';
 
 export interface SandboxFS {
   resolve(path: string): string;

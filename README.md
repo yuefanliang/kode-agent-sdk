@@ -10,7 +10,7 @@
 - **Long-Running & Resumable** - Seven-stage checkpoints with Safe-Fork-Point for crash recovery
 - **Multi-Agent Collaboration** - AgentPool, Room messaging, and task delegation
 - **Enterprise Persistence** - SQLite/PostgreSQL support with unified WAL
-- **Cloud Sandbox** - [E2B](https://e2b.dev) integration for isolated remote code execution
+- **Cloud Sandbox** - [E2B](https://e2b.dev) and OpenSandbox integration for isolated remote code execution
 - **Extensible Ecosystem** - MCP tools, custom Providers, Skills system
 
 ## Quick Start
@@ -79,6 +79,15 @@ npm run example:getting-started    # Minimal chat
 npm run example:agent-inbox        # Event-driven inbox
 npm run example:approval           # Tool approval workflow
 npm run example:room               # Multi-agent collaboration
+npm run example:opensandbox        # OpenSandbox basic usage
+```
+
+OpenSandbox quick config:
+
+```bash
+export OPEN_SANDBOX_API_KEY=...                      # optional (required only when auth is enabled)
+export OPEN_SANDBOX_ENDPOINT=http://127.0.0.1:8080  # optional
+export OPEN_SANDBOX_IMAGE=ubuntu                     # optional
 ```
 
 ## Architecture for Scale
@@ -142,6 +151,8 @@ See [docs/en/guides/architecture.md](./docs/en/guides/architecture.md) for detai
 | **Guides** | |
 | [Events](./docs/en/guides/events.md) | Three-channel event system |
 | [Tools](./docs/en/guides/tools.md) | Built-in tools & custom tools |
+| [E2B Sandbox](./docs/en/guides/e2b-sandbox.md) | E2B cloud sandbox integration |
+| [OpenSandbox](./docs/en/guides/opensandbox-sandbox.md) | OpenSandbox self-hosted sandbox integration |
 | [Skills](./docs/en/guides/skills.md) | Skills system for reusable prompts |
 | [Providers](./docs/en/guides/providers.md) | Model provider configuration |
 | [Database](./docs/en/guides/database.md) | SQLite/PostgreSQL persistence |

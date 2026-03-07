@@ -10,7 +10,7 @@
 - **长时运行与恢复** - 七段断点机制，支持 Safe-Fork-Point 崩溃恢复
 - **多 Agent 协作** - AgentPool、Room 消息、任务委派
 - **企业级持久化** - 支持 SQLite/PostgreSQL，统一 WAL 日志
-- **云端沙箱** - 集成 [E2B](https://e2b.dev)，提供隔离的远程代码执行环境
+- **云端沙箱** - 集成 [E2B](https://e2b.dev) 与 OpenSandbox，提供隔离的远程代码执行环境
 - **可扩展生态** - MCP 工具、自定义 Provider、Skills 系统
 
 ## 快速开始
@@ -79,6 +79,15 @@ npm run example:getting-started    # 最简对话
 npm run example:agent-inbox        # 事件驱动收件箱
 npm run example:approval           # 工具审批流程
 npm run example:room               # 多Agent协作
+npm run example:opensandbox        # OpenSandbox 基础使用
+```
+
+OpenSandbox 快速配置：
+
+```bash
+export OPEN_SANDBOX_API_KEY=...                      # 可选（仅在服务开启鉴权时需要）
+export OPEN_SANDBOX_ENDPOINT=http://127.0.0.1:8080  # 可选
+export OPEN_SANDBOX_IMAGE=ubuntu                     # 可选
 ```
 
 ## 支持的 Provider
@@ -102,6 +111,8 @@ npm run example:room               # 多Agent协作
 | **使用指南** | |
 | [事件系统](./docs/zh-CN/guides/events.md) | 三通道事件系统 |
 | [工具系统](./docs/zh-CN/guides/tools.md) | 内置工具与自定义工具 |
+| [E2B 沙箱](./docs/zh-CN/guides/e2b-sandbox.md) | E2B 云端沙箱接入 |
+| [OpenSandbox 沙箱](./docs/zh-CN/guides/opensandbox-sandbox.md) | OpenSandbox 自托管沙箱接入 |
 | [Skills 系统](./docs/zh-CN/guides/skills.md) | Skills 可复用提示词系统 |
 | [Provider 配置](./docs/zh-CN/guides/providers.md) | 模型 Provider 配置 |
 | [数据库存储](./docs/zh-CN/guides/database.md) | SQLite/PostgreSQL 持久化 |

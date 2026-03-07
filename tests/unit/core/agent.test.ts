@@ -3,11 +3,16 @@
  */
 
 import { Agent } from '../../../src/core/agent';
-import { createUnitTestAgent } from '../../helpers/setup';
+import path from 'path';
+import fs from 'fs';
+import { createUnitTestAgent, ensureCleanDir } from '../../helpers/setup';
 import { TestRunner, expect } from '../../helpers/utils';
 import { ContentBlock } from '../../../src/core/types';
 import { Hooks } from '../../../src/core/hooks';
 import { ModelResponse } from '../../../src/infra/provider';
+import { JSONStore, AgentTemplateRegistry, SandboxFactory, ToolRegistry } from '../../../src';
+import { MockProvider } from '../../mock-provider';
+import { TEST_ROOT } from '../../helpers/fixtures';
 
 const runner = new TestRunner('Agent核心功能');
 
@@ -159,6 +164,66 @@ runner
     expect.toEqual(resumedStatus.stepCount > 0, true);
 
     await cleanup();
+  })
+  .test('OpenSandbox sandboxId 持久化不修改模板 sandbox 配置对象', async () => {
+    const workDir = path.join(TEST_ROOT, `agent-opensb-work-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`);
+    const storeDir = path.join(TEST_ROOT, `agent-opensb-store-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`);
+    ensureCleanDir(workDir);
+    ensureCleanDir(storeDir);
+
+    const store = new JSONStore(storeDir);
+    const templates = new AgentTemplateRegistry();
+    const tools = new ToolRegistry();
+    const sandboxFactory = new SandboxFactory();
+    const templateSandbox: Record<string, any> = {
+      kind: 'opensandbox',
+      endpoint: 'http://127.0.0.1:8080',
+      image: 'debian:latest',
+    };
+
+    templates.register({
+      id: 'opensb-template',
+      systemPrompt: 'test opensandbox sandboxId persistence',
+      tools: [],
+      permission: { mode: 'auto' },
+      sandbox: templateSandbox,
+    });
+
+    const fakeSandbox = {
+      kind: 'opensandbox',
+      workDir,
+      fs: {
+        resolve: (p: string) => (path.isAbsolute(p) ? p : path.resolve(workDir, p)),
+        isInside: () => true,
+        read: async () => '',
+        write: async () => undefined,
+        temp: () => path.resolve(workDir, '.tmp'),
+        stat: async () => ({ mtimeMs: Date.now() }),
+        glob: async () => [],
+      },
+      exec: async () => ({ code: 0, stdout: '', stderr: '' }),
+      getSandboxId: () => 'sbx-test-123',
+      dispose: async () => undefined,
+    };
+    sandboxFactory.register('opensandbox', () => fakeSandbox as any);
+
+    const agent = await Agent.create({
+      templateId: 'opensb-template',
+      model: new MockProvider([{ text: 'ok' }]),
+    }, {
+      store,
+      templateRegistry: templates,
+      sandboxFactory,
+      toolRegistry: tools,
+      modelFactory: () => new MockProvider([{ text: 'ok' }]),
+    });
+
+    expect.toEqual((templateSandbox as any).sandboxId, undefined);
+    expect.toEqual((agent as any).sandboxConfig?.sandboxId, 'sbx-test-123');
+
+    await (agent as any).sandbox?.dispose?.();
+    fs.rmSync(workDir, { recursive: true, force: true });
+    fs.rmSync(storeDir, { recursive: true, force: true });
   })
 
   .test('中断执行', async () => {

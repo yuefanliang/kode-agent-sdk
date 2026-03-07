@@ -73,6 +73,8 @@ export { PostgresStore } from './infra/db/postgres/postgres-store';
 export { Sandbox, LocalSandbox, SandboxKind } from './infra/sandbox';
 export { E2BSandbox, E2BFS, E2BTemplateBuilder } from './infra/e2b';
 export type { E2BSandboxOptions, E2BTemplateConfig } from './infra/e2b';
+export { OpenSandbox, OpenSandboxFS } from './infra/opensandbox';
+export type { OpenSandboxOptions, OpenSandboxWatchMode } from './infra/opensandbox';
 export {
   ModelProvider,
   ModelConfig,

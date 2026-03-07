@@ -348,14 +348,25 @@ export class Agent {
 
     const template = deps.templateRegistry.get(config.templateId);
 
-    const sandboxConfig: SandboxConfig | undefined =
+    const sandboxConfigSource: SandboxConfig | undefined =
       config.sandbox && 'kind' in config.sandbox
         ? (config.sandbox as SandboxConfig)
         : (template.sandbox as SandboxConfig | undefined);
+    const sandboxConfig: SandboxConfig | undefined = sandboxConfigSource
+      ? { ...sandboxConfigSource }
+      : undefined;
 
     const sandbox = typeof config.sandbox === 'object' && 'exec' in config.sandbox
       ? (config.sandbox as Sandbox)
       : await deps.sandboxFactory.createAsync(sandboxConfig || { kind: 'local', workDir: process.cwd() });
+
+    // OpenSandbox creates sandbox id at runtime; persist it for strict resume.
+    if (sandboxConfig?.kind === 'opensandbox' && typeof (sandbox as any).getSandboxId === 'function') {
+      const sandboxId = (sandbox as any).getSandboxId();
+      if (sandboxId) {
+        sandboxConfig.sandboxId = sandboxId;
+      }
+    }
 
     const model = config.model
       ? config.model

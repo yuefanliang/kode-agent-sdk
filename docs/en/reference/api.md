@@ -719,6 +719,39 @@ new E2BSandbox(options?: E2BSandboxOptions)
 
 ---
 
+## OpenSandbox
+
+Self-hosted sandbox powered by [OpenSandbox](https://www.npmjs.com/package/@alibaba-group/opensandbox) for isolated code execution.
+
+### Constructor
+
+```typescript
+new OpenSandbox(options: OpenSandboxOptions)
+```
+
+### Methods
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `init()` | `async init(): Promise<void>` | Initialize (create or connect) sandbox |
+| `exec(cmd, opts?)` | `async exec(cmd: string, opts?: { timeoutMs?: number }): Promise<SandboxExecResult>` | Execute a command |
+| `dispose()` | `async dispose(): Promise<void>` | Dispose sandbox by lifecycle policy |
+| `getSandboxId()` | `getSandboxId(): string \| undefined` | Get sandbox ID for persistence |
+| `isRunning()` | `async isRunning(): Promise<boolean>` | Check if sandbox is alive |
+| `watchFiles(paths, listener)` | `async watchFiles(...): Promise<string>` | Watch file changes (polling fallback supported) |
+| `unwatchFiles(id)` | `unwatchFiles(id: string): void` | Stop watching |
+| `getOpenSandbox()` | `getOpenSandbox(): OpenSandboxClient` | Access underlying OpenSandbox client |
+
+### Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `kind` | `'opensandbox'` | Sandbox type identifier |
+| `workDir` | `string` | Working directory path |
+| `fs` | `SandboxFS` | File system operations |
+
+---
+
 ## E2BTemplateBuilder
 
 Static utility for building custom E2B sandbox templates.
@@ -747,3 +780,5 @@ static async exists(alias: string, opts?: { apiKey?: string }): Promise<boolean>
 - [Types Reference](./types.md)
 - [Events Reference](./events-reference.md)
 - [Guides](../guides/events.md)
+- [E2B Sandbox Guide](../guides/e2b-sandbox.md)
+- [OpenSandbox Guide](../guides/opensandbox-sandbox.md)

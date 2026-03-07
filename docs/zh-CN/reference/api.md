@@ -719,6 +719,39 @@ new E2BSandbox(options?: E2BSandboxOptions)
 
 ---
 
+## OpenSandbox
+
+基于 [OpenSandbox](https://www.npmjs.com/package/@alibaba-group/opensandbox) 的自托管沙箱，用于隔离代码执行。
+
+### 构造函数
+
+```typescript
+new OpenSandbox(options: OpenSandboxOptions)
+```
+
+### 方法
+
+| 方法 | 签名 | 说明 |
+|------|------|------|
+| `init()` | `async init(): Promise<void>` | 初始化（创建或连接）沙箱 |
+| `exec(cmd, opts?)` | `async exec(cmd: string, opts?: { timeoutMs?: number }): Promise<SandboxExecResult>` | 执行命令 |
+| `dispose()` | `async dispose(): Promise<void>` | 按生命周期策略释放沙箱 |
+| `getSandboxId()` | `getSandboxId(): string \| undefined` | 获取沙箱 ID（用于持久化） |
+| `isRunning()` | `async isRunning(): Promise<boolean>` | 检查沙箱是否运行中 |
+| `watchFiles(paths, listener)` | `async watchFiles(...): Promise<string>` | 监听文件变更（支持 polling 回退） |
+| `unwatchFiles(id)` | `unwatchFiles(id: string): void` | 停止监听 |
+| `getOpenSandbox()` | `getOpenSandbox(): OpenSandboxClient` | 获取底层 OpenSandbox 客户端 |
+
+### 属性
+
+| 属性 | 类型 | 说明 |
+|------|------|------|
+| `kind` | `'opensandbox'` | 沙箱类型标识 |
+| `workDir` | `string` | 工作目录路径 |
+| `fs` | `SandboxFS` | 文件系统操作 |
+
+---
+
 ## E2BTemplateBuilder
 
 构建自定义 E2B 沙箱模板的静态工具类。
@@ -747,3 +780,5 @@ static async exists(alias: string, opts?: { apiKey?: string }): Promise<boolean>
 - [类型参考](./types.md)
 - [事件参考](./events-reference.md)
 - [使用指南](../guides/events.md)
+- [E2B 沙箱指南](../guides/e2b-sandbox.md)
+- [OpenSandbox 沙箱指南](../guides/opensandbox-sandbox.md)

@@ -443,7 +443,7 @@ interface SandboxConfig {
 ### SandboxKind
 
 ```typescript
-type SandboxKind = 'local' | 'docker' | 'remote';
+type SandboxKind = 'local' | 'docker' | 'k8s' | 'remote' | 'vfs' | 'e2b' | 'opensandbox';
 ```
 
 ---
@@ -511,6 +511,50 @@ interface E2BTemplateConfig {
   workDir?: string;
   cpuCount?: number;
   memoryMB?: number;
+}
+```
+
+---
+
+## OpenSandbox Types
+
+### OpenSandboxWatchMode
+
+```typescript
+type OpenSandboxWatchMode = 'native' | 'polling' | 'off';
+```
+
+### OpenSandboxOptions
+
+```typescript
+interface OpenSandboxOptions {
+  kind: 'opensandbox';
+  apiKey?: string;
+  endpoint?: string;
+  domain?: string;
+  protocol?: 'http' | 'https';
+  sandboxId?: string;
+  image?: string;
+  template?: string;
+  workDir?: string;
+  timeoutMs?: number;
+  execTimeoutMs?: number;
+  requestTimeoutSeconds?: number;
+  useServerProxy?: boolean;
+  env?: Record<string, string>;
+  metadata?: Record<string, string>;
+  resource?: Record<string, string>;
+  networkPolicy?: Record<string, any>;
+  skipHealthCheck?: boolean;
+  readyTimeoutSeconds?: number;
+  healthCheckPollingInterval?: number;
+  watch?: {
+    mode?: OpenSandboxWatchMode;
+    pollIntervalMs?: number;
+  };
+  lifecycle?: {
+    disposeAction?: 'close' | 'kill';
+  };
 }
 ```
 

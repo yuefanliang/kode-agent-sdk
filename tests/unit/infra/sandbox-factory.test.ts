@@ -1,5 +1,6 @@
 import { SandboxFactory } from '../../../src/infra/sandbox-factory';
 import { LocalSandbox } from '../../../src/infra/sandbox';
+import { OpenSandbox } from '../../../src/infra/opensandbox';
 import { TestRunner, expect } from '../../helpers/utils';
 
 const runner = new TestRunner('SandboxFactory');
@@ -20,6 +21,12 @@ runner
 
     const sandbox = factory.create({ kind: 'vfs' });
     expect.toEqual(sandbox, dummy);
+  })
+  .test('默认注册 opensandbox', async () => {
+    const factory = new SandboxFactory();
+    const sandbox = factory.create({ kind: 'opensandbox' } as any);
+    expect.toBeTruthy(sandbox instanceof OpenSandbox);
+    expect.toEqual(sandbox.kind, 'opensandbox');
   })
 
   .test('未注册类型会抛出错误', async () => {
