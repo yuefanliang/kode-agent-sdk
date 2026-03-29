@@ -9,7 +9,7 @@ import { createUnitTestAgent, ensureCleanDir } from '../../helpers/setup';
 import { TestRunner, expect } from '../../helpers/utils';
 import { ContentBlock } from '../../../src/core/types';
 import { Hooks } from '../../../src/core/hooks';
-import { ModelResponse } from '../../../src/infra/provider';
+import { ModelProvider, ModelResponse, ModelStreamChunk } from '../../../src/infra/provider';
 import { JSONStore, AgentTemplateRegistry, SandboxFactory, ToolRegistry } from '../../../src';
 import { MockProvider } from '../../mock-provider';
 import { TEST_ROOT } from '../../helpers/fixtures';
@@ -116,6 +116,98 @@ runner
     expect.toContain(monitorEvents.join(','), 'WORKING');
 
     await cleanup();
+  })
+  .test('稀疏 streamed block index 不应触发模型阶段错误', async () => {
+    class SparseIndexProvider implements ModelProvider {
+      readonly model = 'sparse-index-provider';
+      readonly maxWindowSize = 128000;
+      readonly maxOutputTokens = 4096;
+      readonly temperature = 0;
+
+      async complete(): Promise<ModelResponse> {
+        throw new Error('complete() should not be called');
+      }
+
+      async *stream(): AsyncIterable<ModelStreamChunk> {
+        yield {
+          type: 'content_block_start',
+          index: 0,
+          content_block: { type: 'text', text: '' },
+        };
+        yield {
+          type: 'content_block_delta',
+          index: 0,
+          delta: { type: 'text_delta', text: 'hello' },
+        };
+        yield { type: 'content_block_stop', index: 0 };
+        yield {
+          type: 'content_block_start',
+          index: 1000,
+          content_block: { type: 'reasoning', reasoning: '' },
+        };
+        yield {
+          type: 'content_block_delta',
+          index: 1000,
+          delta: { type: 'reasoning_delta', text: 'thinking' },
+        };
+        yield { type: 'content_block_stop', index: 1000 };
+        yield {
+          type: 'message_delta',
+          usage: { input_tokens: 1, output_tokens: 1 },
+        };
+        yield { type: 'message_stop' };
+      }
+
+      toConfig() {
+        return {
+          provider: 'openai' as const,
+          model: this.model,
+          reasoningTransport: 'text' as const,
+        };
+      }
+    }
+
+    const workDir = path.join(TEST_ROOT, `agent-sparse-work-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`);
+    const storeDir = path.join(TEST_ROOT, `agent-sparse-store-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`);
+    ensureCleanDir(workDir);
+    ensureCleanDir(storeDir);
+
+    const templates = new AgentTemplateRegistry();
+    templates.register({
+      id: 'sparse-index-template',
+      systemPrompt: 'test sparse stream indexes',
+      tools: [],
+      permission: { mode: 'auto' },
+    });
+
+    const agent = await Agent.create(
+      {
+        templateId: 'sparse-index-template',
+        model: new SparseIndexProvider(),
+        sandbox: { kind: 'local', workDir, enforceBoundary: true, watchFiles: false },
+      },
+      {
+        store: new JSONStore(storeDir),
+        templateRegistry: templates,
+        sandboxFactory: new SandboxFactory(),
+        toolRegistry: new ToolRegistry(),
+      }
+    );
+
+    const errors: string[] = [];
+    const stop = agent.on('error', (event) => {
+      errors.push(event.message);
+    });
+
+    const result = await agent.chat('trigger sparse streamed blocks');
+    stop();
+
+    expect.toEqual(result.status, 'ok');
+    expect.toEqual(result.text, 'hello');
+    expect.toHaveLength(errors, 0);
+
+    fs.rmSync(workDir, { recursive: true, force: true });
+    fs.rmSync(storeDir, { recursive: true, force: true });
   })
 
   .test('Todo 管理API在启用时可用', async () => {

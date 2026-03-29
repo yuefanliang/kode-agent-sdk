@@ -408,12 +408,39 @@ export class OpenAIProvider implements ModelProvider {
     const decoder = new TextDecoder();
     let buffer = '';
     let textStarted = false;
-    const textIndex = 0;
+    let textIndex: number | undefined;
     let reasoningStarted = false;
-    const reasoningIndex = 1000;
+    let reasoningIndex: number | undefined;
+    let nextBlockIndex = 0;
     let sawFinishReason = false;
     let usageEmitted = false;
     const toolCallBuffers = new Map<number, { id?: string; name?: string; args: string }>();
+
+    const resolveTextIndex = (): number => {
+      if (textIndex === undefined) {
+        textIndex = nextBlockIndex++;
+      }
+      return textIndex;
+    };
+
+    const resolveReasoningIndex = (): number => {
+      if (reasoningIndex === undefined) {
+        reasoningIndex = nextBlockIndex++;
+      }
+      return reasoningIndex;
+    };
+
+    const toolCallIndexMap = new Map<number, number>();
+    const resolveToolCallIndex = (providerIndex?: number): number => {
+      const rawIndex = typeof providerIndex === 'number' ? providerIndex : 0;
+      const existing = toolCallIndexMap.get(rawIndex);
+      if (existing !== undefined) {
+        return existing;
+      }
+      const allocated = nextBlockIndex++;
+      toolCallIndexMap.set(rawIndex, allocated);
+      return allocated;
+    };
 
     function* flushToolCalls(): Generator<ModelStreamChunk> {
       if (toolCallBuffers.size === 0) return;
@@ -467,41 +494,43 @@ export class OpenAIProvider implements ModelProvider {
 
         const delta = choice.delta ?? {};
         if (typeof delta.content === 'string' && delta.content.length > 0) {
+          const index = resolveTextIndex();
           if (!textStarted) {
             textStarted = true;
             yield {
               type: 'content_block_start',
-              index: textIndex,
+              index,
               content_block: { type: 'text', text: '' },
             };
           }
           yield {
             type: 'content_block_delta',
-            index: textIndex,
+            index,
             delta: { type: 'text_delta', text: delta.content },
           };
         }
 
         if (typeof (delta as any).reasoning_content === 'string') {
           const reasoningText = (delta as any).reasoning_content;
+          const index = resolveReasoningIndex();
           if (!reasoningStarted) {
             reasoningStarted = true;
             yield {
               type: 'content_block_start',
-              index: reasoningIndex,
+              index,
               content_block: { type: 'reasoning', reasoning: '' },
             };
           }
           yield {
             type: 'content_block_delta',
-            index: reasoningIndex,
+            index,
             delta: { type: 'reasoning_delta', text: reasoningText },
           };
         }
 
         const toolCalls = Array.isArray(delta.tool_calls) ? delta.tool_calls : [];
         for (const call of toolCalls) {
-          const index = typeof call.index === 'number' ? call.index : 0;
+          const index = resolveToolCallIndex(call.index);
           const entry = toolCallBuffers.get(index) ?? { args: '' };
           if (call.id) entry.id = call.id;
           if (call.function?.name) entry.name = call.function.name;
@@ -529,10 +558,10 @@ export class OpenAIProvider implements ModelProvider {
     }
 
     if (textStarted) {
-      yield { type: 'content_block_stop', index: textIndex };
+      yield { type: 'content_block_stop', index: textIndex! };
     }
     if (reasoningStarted) {
-      yield { type: 'content_block_stop', index: reasoningIndex };
+      yield { type: 'content_block_stop', index: reasoningIndex! };
     }
     if (toolCallBuffers.size > 0) {
       yield* flushToolCalls();

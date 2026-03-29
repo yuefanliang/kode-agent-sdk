@@ -1124,6 +1124,7 @@ export class Agent {
         }
       }
 
+      assistantBlocks = this.compactContentBlocks(assistantBlocks);
       assistantBlocks = this.splitThinkBlocksIfNeeded(assistantBlocks);
 
       await this.hooks.runPostModel({ role: 'assistant', content: assistantBlocks } as any);
@@ -1793,17 +1794,24 @@ export class Agent {
     await this.persistentStore.saveMediaCache(this.agentId, Array.from(this.mediaCache.values()));
   }
 
-  private splitThinkBlocksIfNeeded(blocks: ContentBlock[]): ContentBlock[] {
+  private compactContentBlocks(blocks: Array<ContentBlock | undefined>): ContentBlock[] {
+    return blocks.filter((block): block is ContentBlock => block !== undefined);
+  }
+
+  private splitThinkBlocksIfNeeded(blocks: Array<ContentBlock | undefined>): ContentBlock[] {
     const config = this.model.toConfig();
     const transport =
       config.reasoningTransport ??
       (config.provider === 'openai' || config.provider === 'gemini' ? 'text' : 'provider');
     if (transport !== 'text') {
-      return blocks;
+      return this.compactContentBlocks(blocks);
     }
 
     const output: ContentBlock[] = [];
     for (const block of blocks) {
+      if (!block) {
+        continue;
+      }
       if (block.type !== 'text') {
         output.push(block);
         continue;
