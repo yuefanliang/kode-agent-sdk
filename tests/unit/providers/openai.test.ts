@@ -237,6 +237,51 @@ runner
     const assistant = capturedBody.messages.find((msg: any) => msg.role === 'assistant');
     expect.toEqual(assistant?.reasoning_content, undefined);
     expect.toEqual(assistant?.content, 'ok');
+  })
+  .test('stream 使用连续且不冲突的本地 block index', async () => {
+    const provider = new OpenAIProvider('test-key', 'gpt-4o', 'https://api.openai.com/v1');
+    const originalFetch = globalThis.fetch;
+    const encoder = new TextEncoder();
+    const sseBody = [
+      'data: {"choices":[{"delta":{"content":"hello","reasoning_content":"think","tool_calls":[{"index":0,"id":"call_1","function":{"name":"sum","arguments":"{\\"value\\":"}}]}}]}',
+      'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"1}"}}],"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":1,"completion_tokens":2}}',
+      'data: [DONE]',
+      '',
+    ].join('\n');
+
+    globalThis.fetch = (async () => {
+      return {
+        ok: true,
+        body: new ReadableStream({
+          start(controller) {
+            controller.enqueue(encoder.encode(sseBody));
+            controller.close();
+          },
+        }),
+      } as any;
+    }) as any;
+
+    const chunks: any[] = [];
+    try {
+      for await (const chunk of provider.stream([{ role: 'user', content: [{ type: 'text', text: 'hi' }] }])) {
+        chunks.push(chunk);
+      }
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+
+    const starts = chunks.filter((chunk) => chunk.type === 'content_block_start');
+    expect.toHaveLength(starts, 3);
+    expect.toDeepEqual(
+      starts.map((chunk) => ({ index: chunk.index, type: chunk.content_block.type })),
+      [
+        { index: 0, type: 'text' },
+        { index: 1, type: 'reasoning' },
+        { index: 2, type: 'tool_use' },
+      ]
+    );
+    const toolDelta = chunks.find((chunk) => chunk.type === 'content_block_delta' && chunk.delta?.type === 'input_json_delta');
+    expect.toEqual(toolDelta?.index, 2);
   });
 
 export async function run() {
